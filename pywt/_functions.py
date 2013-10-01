@@ -13,6 +13,7 @@ import warnings
 
 import numpy as np
 from numpy.fft import fft
+from scipy.interpolate import InterpolatedUnivariateSpline as Interpolate
 
 from ._extensions._pywt import DiscreteContinuousWavelet, Wavelet, ContinuousWavelet
 
@@ -27,9 +28,14 @@ _DEPRECATION_MSG = ("`{old}` has been renamed to `{new}` and will "
 
 
 def _integrate(arr, step):
-    integral = np.cumsum(arr)
-    integral *= step
-    return integral
+    """
+    Return the indefinite integral of the input array.
+    """
+    out = np.empty_like(arr)
+    interp = Interpolate(np.arange(arr.shape), arr)
+    for i in range(len(arr)):
+        out[i] = interp.integral(0, i)
+    return out * step
 
 
 def intwave(*args, **kwargs):
@@ -87,8 +93,6 @@ def integrate_wavelet(wavelet, precision=8):
     >>> [int_psi_d, int_psi_r, x] = integrate_wavelet(wavelet2, precision=5)
 
     """
-    # FIXME: this function should really use scipy.integrate.quad
-
     if type(wavelet) in (tuple, list):
         msg = ("Integration of a general signal is deprecated "
                "and will be removed in a future version of pywt.")
