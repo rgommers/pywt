@@ -16,7 +16,7 @@ import numpy as np
 
 from ._pywt import Wavelet
 from ._pywt import dwt, idwt, dwt_max_level
-from .multidim import dwt2, idwt2
+from ._multidim import dwt2, idwt2
 
 
 def wavedec(data, wavelet, mode='sym', level=None):
