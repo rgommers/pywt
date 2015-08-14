@@ -128,7 +128,7 @@ def test_idwtn_idwt2_complex():
     LL, (HL, LH, HH) = pywt.dwt2(data, wavelet)
     d = {'aa': LL, 'da': HL, 'ad': LH, 'dd': HH}
 
-    for mode in pywt.MODES.modes:
+    for mode in pywt.Modes.modes:
         assert_allclose(pywt.idwt2((LL, (HL, LH, HH)), wavelet, mode=mode),
                         pywt.idwtn(d, wavelet, mode=mode),
                         rtol=1e-14, atol=1e-14)
