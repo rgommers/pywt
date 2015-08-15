@@ -33,7 +33,7 @@ from numpy.testing import Tester
 test = Tester().test
 
 _MODES_warning = DeprecationWarning("`MODES` has been renamed to `Modes` "
-                                    "and will be inacessible as `MODES` "
+                                    "and will be inaccessible as `MODES` "
                                     "in a future version of pywt.")
 
 __warn_on_access__['MODES'] = (Modes, _MODES_warning)
