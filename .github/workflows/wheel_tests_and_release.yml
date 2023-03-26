@@ -92,30 +92,16 @@ jobs:
         # https://github.com/actions/virtual-environments/issues/294#issuecomment-588090582
         # with additional -arch=amd64 flag to vsdevcmd.bat
         run: |
-          if [[ "$CIBW_ARCHS_WINDOWS" == "AMD64" ]]; then
-            function Invoke-VSDevEnvironment {
-              $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-                $installationPath = & $vswhere -prerelease -legacy -latest -property installationPath
-                $Command = Join-Path $installationPath "Common7\Tools\vsdevcmd.bat"
-              & "${env:COMSPEC}" /s /c "`"$Command`" -arch=amd64 -no_logo && set" | Foreach-Object {
-                    if ($_ -match '^([^=]+)=(.*)') {
-                        [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
-                    }
-                }
-            }
-          elif [[ "$CIBW_ARCHS_WINDOWS_" == "x86" ]]; then
-            # Same, but without `-arch=amd64` (`x86` is the default)
-            function Invoke-VSDevEnvironment {
-              $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-                $installationPath = & $vswhere -prerelease -legacy -latest -property installationPath
-                $Command = Join-Path $installationPath "Common7\Tools\vsdevcmd.bat"
-              & "${env:COMSPEC}" /s /c "`"$Command`" -no_logo && set" | Foreach-Object {
-                    if ($_ -match '^([^=]+)=(.*)') {
-                        [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
-                    }
-                }
-          fi
-
+          function Invoke-VSDevEnvironment {
+            $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+              $installationPath = & $vswhere -prerelease -legacy -latest -property installationPath
+              $Command = Join-Path $installationPath "Common7\Tools\vsdevcmd.bat"
+            & "${env:COMSPEC}" /s /c "`"$Command`" -arch=amd64 -no_logo && set" | Foreach-Object {
+                  if ($_ -match '^([^=]+)=(.*)') {
+                      [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+                  }
+              }
+          }
           Invoke-VSDevEnvironment
           Get-Command rc.exe | Format-Table -AutoSize
 
