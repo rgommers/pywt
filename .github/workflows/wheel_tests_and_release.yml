@@ -97,8 +97,6 @@ jobs:
         os: [macos-latest]
         cibw_python: [ "cp38-*", "cp39-*", "cp310-*" , "cp311-*" ]
         cibw_arch: [ "x86_64", "arm64"]
-    env:
-      MACOSX_DEPLOYMENT_TARGET: "10.13"
     steps:
       - uses: actions/checkout@v3
         with:
@@ -129,12 +127,7 @@ jobs:
 
           python -m cibuildwheel --output-dir dist
         env:
-          CIBW_BUILD: ${{ matrix.cibw_python }}
           CIBW_ARCHS_MACOS: ${{ matrix.cibw_arch }}
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux1
-          CIBW_MANYLINUX_I686_IMAGE: manylinux1
-          CC: /usr/bin/clang
-          CXX: /usr/bin/clang++
 
       - uses: actions/upload-artifact@v3
         with:
@@ -150,10 +143,6 @@ jobs:
         os: [windows-latest]
         cibw_arch: ["AMD64", "x86"]
         cibw_python: ["cp38-*", "cp39-*", "cp310-*", "cp311-*"]
-        # exclude:
-        #   - os: windows-latest
-        #     cibw_python: "cp310-*"
-        #     cibw_arch: x86
     steps:
       - uses: actions/checkout@v3
         with:
@@ -167,14 +156,44 @@ jobs:
       - name: Install cibuildwheel
         run: |
           python -m pip install cibuildwheel
+
       - name: Build Windows wheels for CPython
+        # To avoid "LINK : fatal error LNK1158: cannot run 'rc.exe'"
+        # we explicitly add rc.exe to path using the method from:
+        # https://github.com/actions/virtual-environments/issues/294#issuecomment-588090582
+        # with additional -arch=amd64 flag to vsdevcmd.bat
         run: |
+          if [[ "$CIBW_ARCH" == "AMD64" ]]; then
+            function Invoke-VSDevEnvironment {
+              $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+                $installationPath = & $vswhere -prerelease -legacy -latest -property installationPath
+                $Command = Join-Path $installationPath "Common7\Tools\vsdevcmd.bat"
+              & "${env:COMSPEC}" /s /c "`"$Command`" -arch=amd64 -no_logo && set" | Foreach-Object {
+                    if ($_ -match '^([^=]+)=(.*)') {
+                        [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+                    }
+                }
+            }
+          elif [[ "$CIBW_ARCH" == "x86" ]]; then
+            # Same, but without `-arch=amd64` (`x86` is the default)
+            function Invoke-VSDevEnvironment {
+              $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+                $installationPath = & $vswhere -prerelease -legacy -latest -property installationPath
+                $Command = Join-Path $installationPath "Common7\Tools\vsdevcmd.bat"
+              & "${env:COMSPEC}" /s /c "`"$Command`" -no_logo && set" | Foreach-Object {
+                    if ($_ -match '^([^=]+)=(.*)') {
+                        [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+                    }
+                }
+          fi
+
+          Invoke-VSDevEnvironment
+          Get-Command rc.exe | Format-Table -AutoSize
+
           python -m cibuildwheel --output-dir dist
         env:
           CIBW_BUILD: ${{ matrix.cibw_python }}
-          CIBW_ARCHS_WINDOWS: ${{ matrix.cibw_arch }}
-          CIBW_MANYLINUX_X86_64_IMAGE: manylinux1
-          CIBW_MANYLINUX_I686_IMAGE: manylinux1
+          CIBW_ARCH: ${{ matrix.cibw_arch }}
 
       - uses: actions/upload-artifact@v3
         with:
