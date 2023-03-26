@@ -54,13 +54,9 @@ jobs:
             USE_WHEEL: 1
             OPTIONS_NAME: "install-from-wheel"
           - platform_id: manylinux_x86_64
-            python-version: 3.9
+            python-version: '3.11'
             PIP_FLAGS: "--pre"
-            OPTIONS_NAME: "pre"
-          - platform_id: manylinux_x86_64
-            python-version: '3.11-dev'
-            PIP_FLAGS: "--pre"
-            OPTIONS_NAME: "pre"
+            OPTIONS_NAME: "pre-releases"
 
     steps:
       - name: Checkout PyWavelets
@@ -143,7 +139,7 @@ jobs:
 
 
   test_pywavelets_macos:
-    name: macos-cp${{ matrix.python-version }}
+    name: macos-cp${{ matrix.python-version }}-${{ matrix.OPTIONS_NAME }}
     runs-on: macos-latest
     env:
       MPLBACKEND: Agg
@@ -157,7 +153,7 @@ jobs:
       # Ensure that a wheel builder finishes even if another fails
       fail-fast: false
       matrix:
-        python-version: [3.8, '3.10', '3.11-dev']
+        python-version: [3.8, '3.11']
         MINIMUM_REQUIREMENTS: [0]
         USE_SCIPY: [0]
         USE_SDIST: [0]
@@ -169,9 +165,9 @@ jobs:
           - python-version: 3.8
             MINIMUM_REQUIREMENTS: 1
             OPTIONS_NAME: "osx-minimum-req"
-          - python-version: 3.9
+          - python-version: 3.10
             PIP_FLAGS: "--pre"
-            OPTIONS_NAME: "osx-pre"
+            OPTIONS_NAME: "pre-releases"
 
     steps:
       - name: Checkout PyWavelets
@@ -197,10 +193,8 @@ jobs:
             uname -a
             df -h
             ulimit -a
-            # ccache -s
             which python
             python --version
-            # sudo apt-get install libatlas-base-dev
             pip install --upgrade pip build
             # Set numpy version first, other packages link against it
             if [ "${MINIMUM_REQUIREMENTS}" == "1" ]; then
@@ -225,6 +219,7 @@ jobs:
                 pip install pywavelets*.whl -v
             elif [ "${USE_SDIST}" == "1" ]; then
                 python -m build --sdist
+                pip install pywavelets* -v
             elif [ "${REFGUIDE_CHECK}" == "1" ]; then
                 pip install -e . -v
             else
@@ -238,27 +233,18 @@ jobs:
             USE_SDIST: ${{ matrix.USE_SDIST }}
             REFGUIDE_CHECK: ${{ matrix.REFGUIDE_CHECK }}
         run: |
+            # Move out of source directory to avoid finding local pywt
+            pushd demo
             if [ "${USE_WHEEL}" == "1" ]; then
-                pushd demo
                 pytest --pyargs pywt
-                # if [[ "${TRAVIS_CPU_ARCH}" != "arm64" ]]; then
                 python ../pywt/tests/test_doc.py
-                # fi
-                popd
             elif [ "${USE_SDIST}" == "1" ]; then
-                # Move out of source directory to avoid finding local pywt
-                pushd dist
-                pip install pywavelets* -v
                 pytest --pyargs pywt
-                # if [[ "${TRAVIS_CPU_ARCH}" != "arm64" ]]; then
                 python ../pywt/tests/test_doc.py
-                # fi
-                popd
             elif [ "${REFGUIDE_CHECK}" == "1" ]; then
                 python util/refguide_check.py --doctests
             else
-                pushd demo
                 pytest --pyargs pywt --cov=pywt --cov-config=../.coveragerc
                 cp .coverage ..
-                popd
             fi
+            popd
