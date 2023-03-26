@@ -96,10 +96,8 @@ jobs:
                 if [ "${USE_SCIPY}" == "1" ]; then pip install scipy; fi
             fi
             pip install matplotlib pytest pytest-cov coverage codecov
+
             set -o pipefail
-            if [ "${REFGUIDE_CHECK}" == "1" ]; then
-                pip install sphinx numpydoc
-            fi
             if [ "${USE_WHEEL}" == "1" ]; then
                 # Need verbose output or TravisCI will terminate after 10 minutes
                 pip wheel . -v
@@ -108,6 +106,7 @@ jobs:
                 python -m build --sdist
                 pip install dist/pyw*.tar.gz -v
             elif [ "${REFGUIDE_CHECK}" == "1" ]; then
+                pip install sphinx numpydoc
                 pip install . -v
             else
                 CFLAGS="--coverage" pip install -e . -v
@@ -162,10 +161,10 @@ jobs:
         PIP_FLAGS: [""]
         OPTIONS_NAME: ["default"]
         include:
-          - python-version: 3.8
+          - python-version: '3.8'
             MINIMUM_REQUIREMENTS: 1
             OPTIONS_NAME: "osx-minimum-req"
-          - python-version: 3.10
+          - python-version: '3.10'
             PIP_FLAGS: "--pre"
             OPTIONS_NAME: "pre-releases"
 
@@ -198,20 +197,15 @@ jobs:
             pip install --upgrade pip build
             # Set numpy version first, other packages link against it
             if [ "${MINIMUM_REQUIREMENTS}" == "1" ]; then
-                pip install ${CYTHON_MIN}
-                pip install ${NUMPY_MIN}
+                pip install ${CYTHON_MIN} ${NUMPY_MIN}
                 if [ "${USE_SCIPY}" == "1" ]; then pip install ${SCIPY_MIN}; fi
             else
-                pip install cython
-                pip install numpy
+                pip install cython numpy
                 if [ "${USE_SCIPY}" == "1" ]; then pip install scipy; fi
             fi
-            pip install matplotlib
-            pip install pytest pytest-cov coverage codecov
+            pip install matplotlib pytest pytest-cov coverage codecov
+
             set -o pipefail
-            if [ "${REFGUIDE_CHECK}" == "1" ]; then
-                pip install sphinx numpydoc
-            fi
             if [ "${USE_WHEEL}" == "1" ]; then
                 pip install wheel;
                 # Need verbose output or TravisCI will terminate after 10 minutes
@@ -221,9 +215,10 @@ jobs:
                 python -m build --sdist
                 pip install pywavelets* -v
             elif [ "${REFGUIDE_CHECK}" == "1" ]; then
-                pip install -e . -v
+                pip install sphinx numpydoc
+                pip install . -v
             else
-                CFLAGS="--coverage" pip install -e . -v
+                pip install . -v
             fi
 
       - name: Run tests
@@ -244,7 +239,6 @@ jobs:
             elif [ "${REFGUIDE_CHECK}" == "1" ]; then
                 python util/refguide_check.py --doctests
             else
-                pytest --pyargs pywt --cov=pywt --cov-config=../.coveragerc
-                cp .coverage ..
+                pytest --pyargs pywt
             fi
             popd
