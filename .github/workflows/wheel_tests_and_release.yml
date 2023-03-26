@@ -55,6 +55,7 @@ jobs:
 
           python -m cibuildwheel --output-dir dist
         env:
+          CIBW_BUILD: ${{ matrix.cibw_python }}
           CIBW_ARCHS_MACOS: ${{ matrix.cibw_arch }}
 
       - uses: actions/upload-artifact@v3
@@ -91,7 +92,7 @@ jobs:
         # https://github.com/actions/virtual-environments/issues/294#issuecomment-588090582
         # with additional -arch=amd64 flag to vsdevcmd.bat
         run: |
-          if [[ "$CIBW_ARCH" == "AMD64" ]]; then
+          if [[ "$CIBW_ARCHS_WINDOWS" == "AMD64" ]]; then
             function Invoke-VSDevEnvironment {
               $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
                 $installationPath = & $vswhere -prerelease -legacy -latest -property installationPath
@@ -102,7 +103,7 @@ jobs:
                     }
                 }
             }
-          elif [[ "$CIBW_ARCH" == "x86" ]]; then
+          elif [[ "$CIBW_ARCHS_WINDOWS_" == "x86" ]]; then
             # Same, but without `-arch=amd64` (`x86` is the default)
             function Invoke-VSDevEnvironment {
               $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
@@ -121,7 +122,7 @@ jobs:
           python -m cibuildwheel --output-dir dist
         env:
           CIBW_BUILD: ${{ matrix.cibw_python }}
-          CIBW_ARCH: ${{ matrix.cibw_arch }}
+          CIBW_ARCHS_WINDOWS: ${{ matrix.cibw_arch }}
 
       - uses: actions/upload-artifact@v3
         with:
