@@ -112,8 +112,21 @@ jobs:
       - name: Install cibuildwheel
         run: |
           python -m pip install cibuildwheel
+
       - name: Build wheels for CPython (MacOS)
         run: |
+          # We need to set both MACOS_DEPLOYMENT_TARGET and MACOSX_DEPLOYMENT_TARGET
+          # until there is a new release with this commit:
+          # https://github.com/mesonbuild/meson-python/pull/309 (should be in 0.13.0)
+          if [[ "$CIBW_ARCHS_MACOS" == arm64 ]]; then
+              export MACOSX_DEPLOYMENT_TARGET=11.0
+              export MACOS_DEPLOYMENT_TARGET=11.0
+          else
+              export MACOSX_DEPLOYMENT_TARGET=10.13
+              export MACOS_DEPLOYMENT_TARGET=10.13
+          fi
+          echo MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}
+
           python -m cibuildwheel --output-dir dist
         env:
           CIBW_BUILD: ${{ matrix.cibw_python }}
