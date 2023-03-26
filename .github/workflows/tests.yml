@@ -1,4 +1,3 @@
-# Workflow to build and test wheels
 name: Test
 
 on:
@@ -109,7 +108,7 @@ jobs:
                 pip install sphinx numpydoc
                 pip install . -v
             else
-                CFLAGS="--coverage" pip install -e . -v
+                CFLAGS="--coverage" pip install . -v
             fi
 
       - name: Run tests
@@ -207,8 +206,6 @@ jobs:
 
             set -o pipefail
             if [ "${USE_WHEEL}" == "1" ]; then
-                pip install wheel;
-                # Need verbose output or TravisCI will terminate after 10 minutes
                 pip wheel . -v
                 pip install pywavelets*.whl -v
             elif [ "${USE_SDIST}" == "1" ]; then
