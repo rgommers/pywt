@@ -77,7 +77,7 @@ jobs:
     name: Release (Anaconda)
     needs:
       [
-        build_linux_x86_64_wheels,
+        build_linux_x86_64_free_threaded_wheels,
       ]
     # Run only on pushes to the main branch, on schedule, or when triggered manually
     if: >-
