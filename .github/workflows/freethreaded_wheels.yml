@@ -8,6 +8,7 @@ on:
       # Runs on every merge to main to upload .dev0 wheels to anaconda.org
       - main
       - v1.**
+      - py313-wheel
   # Make it possible to upload wheels manually if needed (for anaconda.org only, not PyPI)
   workflow_dispatch:
     inputs:
@@ -34,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        cibw_python: ["cp313t"]
+        cibw_python: ["cp313", "cp313t"]
         cibw_arch: ["x86_64"]
     steps:
       - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
@@ -72,100 +73,3 @@ jobs:
           name: wheels_linux_${{ matrix.cibw_arch }}_${{ matrix.cibw_python }}
           path: ./dist/*.whl
           if-no-files-found: error
-
-  build_macos_free_threaded_wheels:
-    name: Build ${{ matrix.cibw_python }} ${{ matrix.cibw_arch }} ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # macos-13 is the last runner that supports Intel (x86_64) architecture
-        os: [macos-13, macos-14]
-        cibw_python: ["cp313t"]
-        cibw_arch: ["x86_64", "arm64"]
-        exclude:
-          - os: macos-14
-            cibw_arch: "x86_64"
-          - os: macos-13
-            cibw_arch: "arm64"
-    steps:
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-python@v5
-        name: Install Python
-        with:
-          python-version: "3.12"
-
-      - name: Install build deps; set CIBW environment variables
-        run: |
-          PYPI_URL="https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
-          CIBW_DEPS="pip install --upgrade pip build &&\
-                     pip install --pre -i $PYPI_URL cython numpy scipy &&\
-                     pip install pytest meson-python ninja"
-          echo "CIBW_BEFORE_BUILD=$CIBW_DEPS" >> "$GITHUB_ENV"
-          echo "CIBW_BEFORE_TEST=$CIBW_DEPS" >> "$GITHUB_ENV"
-          echo "CIBW_TEST_COMMAND=PYTHON_GIL=0 $CIBW_TEST_COMMAND" >> "$GITHUB_ENV"
-
-      - name: Build wheels for CPython (macOS) (x86_64)
-        if: matrix.cibw_arch == 'x86_64'
-        uses: pypa/cibuildwheel@a8d190a111314a07eb5116036c4b3fb26a4e3162 # v2.19.0
-        with:
-          output-dir: dist
-        env:
-          CIBW_BUILD: ${{ matrix.cibw_python }}-*
-          CIBW_ARCHS_MACOS: ${{ matrix.cibw_arch }}
-          CIBW_PRERELEASE_PYTHONS: True
-          CIBW_FREE_THREADED_SUPPORT: True
-          CIBW_BUILD_FRONTEND: "pip; args: --no-build-isolation"
-
-      - name: Build wheels for CPython (macOS) (arm64)
-        if: matrix.cibw_arch == 'arm64'
-        uses: pypa/cibuildwheel@a8d190a111314a07eb5116036c4b3fb26a4e3162 # v2.19.0
-        with:
-          output-dir: dist
-        env:
-          CIBW_BUILD: ${{ matrix.cibw_python }}-*
-          CIBW_ARCHS_MACOS: ${{ matrix.cibw_arch }}
-          CIBW_PRERELEASE_PYTHONS: True
-          CIBW_FREE_THREADED_SUPPORT: True
-          CIBW_BUILD_FRONTEND: "pip; args: --no-build-isolation"
-
-      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        with:
-          name: wheels_macos_${{ matrix.cibw_arch }}_${{ matrix.cibw_python }}
-          path: ./dist/*.whl
-          if-no-files-found: error
-
-  deploy_anaconda:
-    name: Release (Anaconda)
-    needs:
-      [
-        build_linux_x86_64_free_threaded_wheels,
-        build_macos_free_threaded_wheels,
-      ]
-    # Run only on pushes to the main branch, on schedule, or when triggered manually
-    if: >-
-      github.repository == 'PyWavelets/pywt' &&
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.push_wheels == 'true') ||
-      (github.event_name == 'schedule')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
-        with:
-          fetch-depth: 0
-
-      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-        id: download
-        with:
-          pattern: "wheels_*"
-          path: dist/
-          merge-multiple: true
-
-      - name: Push to Anaconda PyPI index
-        uses: scientific-python/upload-nightly-action@b67d7fcc0396e1128a474d1ab2b48aa94680f9fc # v0.5.0
-        with:
-          artifacts_path: dist/
-          anaconda_nightly_upload_token: ${{ secrets.ANACONDA_ORG_UPLOAD_TOKEN }}
