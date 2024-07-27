@@ -51,7 +51,7 @@ jobs:
           output-dir: dist
         env:
           CIBW_PRERELEASE_PYTHONS: True
-          #CIBW_FREE_THREADED_SUPPORT: True
+          CIBW_FREE_THREADED_SUPPORT: True
           CIBW_BUILD: ${{ matrix.cibw_python }}-*
           CIBW_ARCHS_LINUX: ${{ matrix.cibw_arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
