@@ -8,6 +8,7 @@ on:
       # Runs on every merge to main to upload .dev0 wheels to anaconda.org
       - main
       - v1.**
+      - py313-wheels
   # Make it possible to upload wheels manually if needed (for anaconda.org only, not PyPI)
   workflow_dispatch:
     inputs:
@@ -34,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        cibw_python: ["cp310", "cp311", "cp312"]
+        cibw_python: ["cp310", "cp313"]
         cibw_arch: ["x86_64"]
     steps:
       - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
@@ -49,6 +50,8 @@ jobs:
         with:
           output-dir: dist
         env:
+          CIBW_PRERELEASE_PYTHONS: True
+          #CIBW_FREE_THREADED_SUPPORT: True
           CIBW_BUILD: ${{ matrix.cibw_python }}-*
           CIBW_ARCHS_LINUX: ${{ matrix.cibw_arch }}
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
@@ -59,219 +62,3 @@ jobs:
           path: ./dist/*.whl
           if-no-files-found: error
 
-  build_linux_aarch64_wheels:
-    name: Build ${{ matrix.cibw_python }} ${{ matrix.cibw_arch }} ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        cibw_python: ["cp310", "cp311", "cp312"]
-        cibw_arch: ["aarch64"]
-    steps:
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        name: Install Python
-        with:
-          python-version: "3.10"
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-      - name: Build the wheel
-        uses: pypa/cibuildwheel@ba8be0d98853f5744f24e7f902c8adef7ae2e7f3 # 2.18.1
-        with:
-          output-dir: dist
-        env:
-          CIBW_BUILD: ${{ matrix.cibw_python }}-*
-          CIBW_ARCHS_LINUX: ${{ matrix.cibw_arch }}
-          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux2014
-          CIBW_MUSLLINUX_AARCH64_IMAGE: musllinux_1_2
-      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        with:
-          name: wheels_linux_${{ matrix.cibw_arch }}_${{ matrix.cibw_python }}
-          path: ./dist/*.whl
-
-  build_macos_wheels:
-    name: Build ${{ matrix.cibw_python }} ${{ matrix.cibw_arch }} ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # macos-13 is the last runner that supports Intel (x86_64) architecture
-        os: [macos-13, macos-14]
-        cibw_python: ["cp310", "cp311", "cp312"]
-        cibw_arch: ["x86_64", "arm64"]
-        exclude:
-          - os: macos-14
-            cibw_arch: "x86_64"
-          - os: macos-13
-            cibw_arch: "arm64"
-    steps:
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-python@v5
-        name: Install Python
-        with:
-          python-version: "3.12"
-
-      - name: Build wheels for CPython (macOS) (x86_64)
-        if: matrix.cibw_arch == 'x86_64'
-        uses: pypa/cibuildwheel@ba8be0d98853f5744f24e7f902c8adef7ae2e7f3 # 2.18.1
-        with:
-          output-dir: dist
-        env:
-          CIBW_BUILD: ${{ matrix.cibw_python }}-*
-          CIBW_ARCHS_MACOS: ${{ matrix.cibw_arch }}
-
-      - name: Build wheels for CPython (macOS) (arm64)
-        if: matrix.cibw_arch == 'arm64'
-        uses: pypa/cibuildwheel@ba8be0d98853f5744f24e7f902c8adef7ae2e7f3 # 2.18.1
-        with:
-          output-dir: dist
-        env:
-          CIBW_BUILD: ${{ matrix.cibw_python }}-*
-          CIBW_ARCHS_MACOS: ${{ matrix.cibw_arch }}
-
-      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        with:
-          name: wheels_macos_${{ matrix.cibw_arch }}_${{ matrix.cibw_python }}
-          path: ./dist/*.whl
-          if-no-files-found: error
-
-  build_windows_wheels:
-    name: Build ${{ matrix.cibw_python }} ${{ matrix.cibw_arch }} ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
-        cibw_arch: ["AMD64", "x86"]
-        cibw_python: ["cp310", "cp311", "cp312"]
-    steps:
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-python@v5
-        name: Install Python
-        with:
-          python-version: "3.10"
-
-      - name: Setup MSVC (32-bit)
-        if: matrix.cibw_arch == 'x86'
-        uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d # v1
-        with:
-          architecture: x86
-
-      - name: Setup MSVC (64-bit)
-        if: matrix.cibw_arch == 'AMD64'
-        uses: bus1/cabuild/action/msdevshell@e22aba57d6e74891d059d66501b6b5aed8123c4d # v1
-        with:
-          architecture: x64
-
-      - name: Build Windows wheels for CPython
-        uses: pypa/cibuildwheel@ba8be0d98853f5744f24e7f902c8adef7ae2e7f3 # 2.18.1
-        with:
-          output-dir: dist
-        env:
-          CIBW_BUILD: ${{ matrix.cibw_python }}-*
-          CIBW_ARCHS_WINDOWS: ${{ matrix.cibw_arch }}
-
-      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
-        with:
-          name: wheels_windows_${{ matrix.cibw_arch }}_${{ matrix.cibw_python }}
-          path: ./dist/*.whl
-          if-no-files-found: error
-
-  deploy_pypi:
-    name: Release (PyPI)
-    needs:
-      [
-        build_linux_x86_64_wheels,
-        build_linux_aarch64_wheels,
-        build_macos_wheels,
-        build_windows_wheels,
-      ]
-    # Run only on tags pushed to the repository
-    if: github.repository == 'PyWavelets/pywt' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-python@v5
-        name: Install Python
-        with:
-          python-version: "3.10"
-
-      - name: Install Twine
-        run: |
-          python -m pip install --upgrade pip
-          pip install twine
-          pip install cython numpy build
-
-      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-        id: download
-        with:
-          pattern: "wheels_*"
-          path: ./dist
-          merge-multiple: true
-
-      - name: Publish the source distribution on PyPI
-        run: |
-          PYWT_VERSION=$(git describe --tags)
-          python -m build --sdist
-          ls -la ${{ github.workspace }}/dist
-          # We prefer to release wheels before source because otherwise there is a
-          # small window during which users who pip install pywt will require compilation.
-          twine upload ${{ github.workspace }}/dist/*.whl
-          twine upload ${{ github.workspace }}/dist/pywavelets-${PYWT_VERSION:1}.tar.gz
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TWINE_TOKEN }}
-
-      - name: Github release
-        uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0 # v2.0.6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-
-  deploy_anaconda:
-    name: Release (Anaconda)
-    needs:
-      [
-        build_linux_x86_64_wheels,
-        build_linux_aarch64_wheels,
-        build_macos_wheels,
-        build_windows_wheels,
-      ]
-    # Run only on pushes to the main branch, on schedule, or when triggered manually
-    if: >-
-      github.repository == 'PyWavelets/pywt' &&
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.push_wheels == 'true') ||
-      (github.event_name == 'schedule')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
-        with:
-          fetch-depth: 0
-
-      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
-        id: download
-        with:
-          pattern: "wheels_*"
-          path: dist/
-          merge-multiple: true
-
-      - name: Push to Anaconda PyPI index
-        uses: scientific-python/upload-nightly-action@b67d7fcc0396e1128a474d1ab2b48aa94680f9fc # v0.5.0
-        with:
-          artifacts_path: dist/
-          anaconda_nightly_upload_token: ${{ secrets.ANACONDA_ORG_UPLOAD_TOKEN }}
