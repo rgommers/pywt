@@ -51,6 +51,7 @@ jobs:
           PYPI_URL="https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
           CIBW_DEPS="pip install --upgrade pip build &&\
                      pip install --pre -i $PYPI_URL cython numpy scipy &&\
+                     pip install git+https://github.com/eli-schwartz/meson@ci-fold &&\
                      pip install pytest meson-python ninja"
           echo "CIBW_BEFORE_BUILD=$CIBW_DEPS" >> "$GITHUB_ENV"
           echo "CIBW_BEFORE_TEST=$CIBW_DEPS" >> "$GITHUB_ENV"
