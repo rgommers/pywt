@@ -111,5 +111,6 @@ foreach pyx_file: pyx_files
     link_with : libc_wt,
     install: true,
     subdir: 'pywt/_extensions',
+    limited_api: py_min_version,
   )
 endforeach
