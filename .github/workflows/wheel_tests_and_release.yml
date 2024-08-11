@@ -95,6 +95,15 @@ jobs:
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
+
+      - name: Install test dep; set CIBW environment variables
+        # Can be removed once numpy 2.1.0 is released
+        if: ${{ matrix.cibw_python }} == "cp313"
+        run: |
+          PYPI_URL="https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
+          CIBW_DEPS="pip install --pre -i $PYPI_URL numpy"
+          echo "CIBW_BEFORE_TEST=$CIBW_DEPS" >> "$GITHUB_ENV"
+
       - name: Build the wheel
         uses: pypa/cibuildwheel@bd033a44476646b606efccdd5eed92d5ea1d77ad # v2.20.0
         with:
