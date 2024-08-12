@@ -8,7 +8,6 @@ on:
       # Runs on every merge to main to upload .dev0 wheels to anaconda.org
       - main
       - v1.**
-      - py313-whl
   # Make it possible to upload wheels manually if needed (for anaconda.org only, not PyPI)
   workflow_dispatch:
     inputs:
