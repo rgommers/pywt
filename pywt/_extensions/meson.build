@@ -6,7 +6,7 @@ endif
 # Don't use the deprecated NumPy C API. Define this to a fixed version instead of
 # NPY_API_VERSION in order not to break compilation for released PyWavelets
 # versions when NumPy introduces a new deprecation.
-numpy_nodepr_api = ['-DNPY_NO_DEPRECATED_API=NPY_1_22_API_VERSION']
+numpy_nodepr_api = ['-DNPY_TARGET_VERSION=NPY_2_5_API_VERSION']
 
 # Uses the `numpy-config` executable (or a user's numpy.pc pkg-config file),
 # will work for numpy>=2.0.0b1 and meson>=1.4.0
@@ -105,9 +105,8 @@ cy_deps = declare_dependency(sources: [__init__py, _cython_tree])#, config_pxi])
 foreach pyx_file: pyx_files
   py.extension_module(pyx_file[0],
     [cython_gen.process(pyx_file[1])],
-    c_args : c_args,
+    c_args : c_args + ['-D_Py_OPAQUE_PYOBJECT'],
     limited_api: '3.15',
-    c_args: ['-D_Py_OPAQUE_PYOBJECT'],
     include_directories : 'c',
     dependencies : [np_dep, cy_deps],
     link_with : libc_wt,
